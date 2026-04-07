@@ -1,0 +1,120 @@
+name: Build Dragon Wind Desktop
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:   # allow manual trigger from Forgejo UI
+
+jobs:
+  # ── Windows .exe ────────────────────────────────────────────────────────────
+  build-windows:
+    name: Windows (.exe)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Windows installer
+        run: npm run build:win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload .exe artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dragon-wind-windows
+          path: dist/*.exe
+          retention-days: 30
+
+  # ── macOS .dmg ──────────────────────────────────────────────────────────────
+  build-mac:
+    name: macOS (.dmg)
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build macOS DMG
+        run: npm run build:mac
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload .dmg artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dragon-wind-mac
+          path: dist/*.dmg
+          retention-days: 30
+
+  # ── Linux AppImage ───────────────────────────────────────────────────────────
+  build-linux:
+    name: Linux (AppImage)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Linux build deps
+        run: sudo apt-get install -y libgtk-3-dev libnotify-dev libnss3 libxss1
+
+      - name: Build Linux AppImage
+        run: npm run build:linux
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload AppImage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dragon-wind-linux
+          path: dist/*.AppImage
+          retention-days: 30
+
+  # ── Release (on tag push) ────────────────────────────────────────────────────
+  release:
+    name: Create Release
+    needs: [build-windows, build-mac, build-linux]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Create Forgejo Release
+        uses: https://code.forgejo.org/forgejo/release-action@v1
+        with:
+          direction: upload
+          release-dir: artifacts/
+          token: ${{ secrets.GITHUB_TOKEN }}
