@@ -1,0 +1,45 @@
+{
+  "name": "dragon-wind-desktop",
+  "version": "0.1.0",
+  "description": "Dragon Wind Desktop — High-speed file uploader for Grass Valley AMPP",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "NODE_ENV=development electron .",
+    "build": "electron-builder",
+    "build:mac": "electron-builder --mac",
+    "build:win": "electron-builder --win",
+    "build:linux": "electron-builder --linux"
+  },
+  "keywords": ["electron", "uploader", "s3", "broadcast", "ampp"],
+  "author": "Wild Dragon",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-builder": "^24.0.0"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.600.0",
+    "@aws-sdk/s3-request-presigner": "^3.600.0",
+    "electron-store": "^10.0.0"
+  },
+  "build": {
+    "appId": "net.wilddragon.dragon-wind-desktop",
+    "productName": "Dragon Wind",
+    "icon": "assets/icon",
+    "mac": {
+      "category": "public.app-category.utilities",
+      "target": [{ "target": "dmg", "arch": ["x64", "arm64"] }]
+    },
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }]
+    },
+    "linux": {
+      "target": [{ "target": "AppImage", "arch": ["x64"] }]
+    },
+    "files": ["src/**/*", "assets/**/*"],
+    "extraMetadata": {
+      "main": "src/main/main.js"
+    }
+  }
+}

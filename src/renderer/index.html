@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'"/>
+<title>Dragon Wind</title>
+<style>
+/* ── Reset & Tokens ─────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:           #060812;
+  --bg-card:      #0c1020;
+  --bg-hover:     #111828;
+  --border:       #1e2a40;
+  --text:         #e8eaf0;
+  --text-dim:     #4a5568;
+  --text-mid:     #8899bb;
+  --blue:         #2563eb;
+  --blue-bright:  #3b82f6;
+  --dragon:       #e05c1a;
+  --dragon-light: #f97316;
+  --success:      #22c55e;
+  --error:        #ef4444;
+  --warning:      #f59e0b;
+  --radius:       10px;
+  --font-mono:    'Consolas', 'Menlo', monospace;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ── Title Bar ──────────────────────────────────────────────────────────── */
+.titlebar {
+  height: 38px;
+  background: #040609;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  -webkit-app-region: drag;
+  flex-shrink: 0;
+  gap: 8px;
+}
+.titlebar-controls {
+  display: flex;
+  gap: 6px;
+  -webkit-app-region: no-drag;
+}
+.titlebar-btn {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.titlebar-btn.close  { background: #ff5f57; }
+.titlebar-btn.min    { background: #ffbd2e; }
+.titlebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  margin-right: auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-mid);
+  letter-spacing: .05em;
+}
+.titlebar-logo span { color: var(--dragon-light); }
+
+/* ── Nav ────────────────────────────────────────────────────────────────── */
+.nav {
+  display: flex;
+  gap: 2px;
+  padding: 6px 10px 0;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.nav-tab {
+  padding: 5px 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all .15s;
+  letter-spacing: .02em;
+}
+.nav-tab:hover { color: var(--text-mid); }
+.nav-tab.active { color: var(--blue-bright); border-bottom-color: var(--blue-bright); }
+
+/* ── Pages ──────────────────────────────────────────────────────────────── */
+.page { display: none; flex: 1; overflow-y: auto; padding: 14px; }
+.page.active { display: flex; flex-direction: column; gap: 12px; }
+
+/* ── Login Page ─────────────────────────────────────────────────────────── */
+.login-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+}
+.login-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.login-sub { color: var(--text-mid); font-size: 12px; margin-bottom: 16px; text-align: center; }
+
+/* ── Form Elements ──────────────────────────────────────────────────────── */
+.field { display: flex; flex-direction: column; gap: 4px; width: 100%; max-width: 320px; }
+.label { font-size: 11px; font-weight: 600; color: var(--text-mid); letter-spacing: .04em; text-transform: uppercase; }
+.input {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 8px 10px;
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+  transition: border-color .15s;
+  width: 100%;
+}
+.input:focus { border-color: var(--blue); }
+.input::placeholder { color: var(--text-dim); }
+
+/* ── Buttons ────────────────────────────────────────────────────────────── */
+.btn {
+  padding: 8px 18px;
+  border-radius: 7px;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn:disabled { opacity: .4; pointer-events: none; }
+.btn-primary { background: var(--blue); color: #fff; }
+.btn-primary:hover { background: var(--blue-bright); }
+.btn-dragon { background: var(--dragon); color: #fff; }
+.btn-dragon:hover { background: var(--dragon-light); }
+.btn-ghost { background: transparent; color: var(--text-mid); border: 1px solid var(--border); }
+.btn-ghost:hover { background: var(--bg-hover); color: var(--text); }
+.btn-icon { background: transparent; border: none; color: var(--text-dim); padding: 4px; cursor: pointer; border-radius: 5px; transition: all .12s; }
+.btn-icon:hover { color: var(--text); background: var(--bg-hover); }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+
+/* ── Drop Zone ──────────────────────────────────────────────────────────── */
+.drop-zone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 32px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all .15s;
+  text-align: center;
+}
+.drop-zone:hover, .drop-zone.drag-over {
+  border-color: var(--blue);
+  background: rgba(37,99,235,.06);
+}
+.drop-zone-icon { font-size: 28px; }
+.drop-zone-label { font-size: 13px; color: var(--text-mid); font-weight: 500; }
+.drop-zone-sub { font-size: 11px; color: var(--text-dim); }
+
+/* ── Folder Browser ─────────────────────────────────────────────────────── */
+.folder-section { display: flex; flex-direction: column; gap: 6px; }
+.section-label { font-size: 11px; font-weight: 600; color: var(--text-dim); letter-spacing: .05em; text-transform: uppercase; }
+.folder-search {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 6px 10px;
+  color: var(--text);
+  font-size: 12px;
+  outline: none;
+  width: 100%;
+  transition: border-color .15s;
+}
+.folder-search:focus { border-color: var(--blue); }
+.folder-list {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  max-height: 140px;
+  overflow-y: auto;
+}
+.folder-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  cursor: pointer;
+  transition: background .1s;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-mid);
+}
+.folder-row:last-child { border-bottom: none; }
+.folder-row:hover { background: var(--bg-hover); }
+.folder-row.active { background: rgba(37,99,235,.12); color: var(--blue-bright); }
+.folder-row .fi { font-size: 11px; }
+.prefix-display {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--blue-bright);
+  padding: 2px 6px;
+  background: rgba(37,99,235,.1);
+  border-radius: 4px;
+  align-self: flex-start;
+}
+
+/* ── Queue ──────────────────────────────────────────────────────────────── */
+.queue-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.queue-stats {
+  display: flex;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--text-mid);
+}
+.stat-val { font-weight: 700; color: var(--text); }
+.queue-list { display: flex; flex-direction: column; gap: 6px; }
+.queue-empty {
+  text-align: center;
+  padding: 32px;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+/* ── Job Card ───────────────────────────────────────────────────────────── */
+.job-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.job-card.done   { border-color: rgba(34,197,94,.25); }
+.job-card.error  { border-color: rgba(239,68,68,.25); }
+.job-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.job-name {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+.job-status-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: .04em;
+  flex-shrink: 0;
+}
+.badge-queued    { background: rgba(74,85,104,.4); color: var(--text-dim); }
+.badge-uploading { background: rgba(37,99,235,.2); color: var(--blue-bright); }
+.badge-done      { background: rgba(34,197,94,.15); color: var(--success); }
+.badge-error     { background: rgba(239,68,68,.15); color: var(--error); }
+.badge-cancelled { background: rgba(74,85,104,.2); color: var(--text-dim); }
+
+.job-meta {
+  display: flex;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.job-speed { color: var(--dragon-light); font-weight: 600; }
+.job-eta   { color: var(--text-mid); }
+
+.progress-bar-wrap {
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.progress-bar {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--blue), var(--blue-bright));
+  transition: width .3s;
+}
+.progress-bar.done { background: var(--success); }
+.progress-bar.error { background: var(--error); }
+
+.job-error-msg { font-size: 11px; color: var(--error); }
+
+/* ── Settings ───────────────────────────────────────────────────────────── */
+.settings-section { display: flex; flex-direction: column; gap: 14px; }
+.settings-group {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.settings-title { font-size: 12px; font-weight: 700; color: var(--text-mid); letter-spacing: .04em; text-transform: uppercase; margin-bottom: 4px; }
+.settings-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.settings-row label { font-size: 12px; color: var(--text); flex: 1; }
+.settings-row small { font-size: 11px; color: var(--text-dim); display: block; }
+.settings-input { width: 80px; text-align: center; }
+
+/* ── Status bar ─────────────────────────────────────────────────────────── */
+.statusbar {
+  height: 24px;
+  border-top: 1px solid var(--border);
+  background: #040609;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 12px;
+  flex-shrink: 0;
+  font-size: 10.5px;
+  color: var(--text-dim);
+}
+.statusbar-speed { color: var(--dragon-light); font-weight: 600; }
+.statusbar-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  flex-shrink: 0;
+}
+.statusbar-dot.connected { background: var(--success); }
+
+/* ── Scrollbar ──────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ── Toast ──────────────────────────────────────────────────────────────── */
+.toast-wrap {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 999;
+  pointer-events: none;
+}
+.toast {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: all .2s;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast.success { border-color: rgba(34,197,94,.4); color: var(--success); }
+.toast.error   { border-color: rgba(239,68,68,.4); color: var(--error); }
+</style>
+</head>
+<body>
+
+<!-- Title Bar -->
+<div class="titlebar">
+  <div class="titlebar-controls">
+    <button class="titlebar-btn close" onclick="window.dw.hide()" title="Hide"></button>
+    <button class="titlebar-btn min"   onclick="window.dw.minimize()" title="Minimize"></button>
+  </div>
+  <div class="titlebar-logo">🐉 <span>Dragon Wind</span> Desktop</div>
+</div>
+
+<!-- Nav -->
+<div class="nav" id="nav">
+  <div class="nav-tab active" data-page="upload" onclick="switchPage('upload')">Upload</div>
+  <div class="nav-tab" data-page="queue" onclick="switchPage('queue')">Queue <span id="nav-queue-count" style="display:none;font-size:10px;background:var(--blue);color:#fff;border-radius:10px;padding:1px 5px;margin-left:2px"></span></div>
+  <div class="nav-tab" data-page="settings" onclick="switchPage('settings')">Settings</div>
+</div>
+
+<!-- LOGIN PAGE (shown instead of nav when logged out) -->
+<div id="login-page" style="display:none;flex:1;overflow:hidden">
+  <div class="login-wrap">
+    <div style="font-size:36px">🐉</div>
+    <div class="login-title">Dragon Wind</div>
+    <div class="login-sub">Connect to your Dragon Wind server<br>to start uploading.</div>
+    <div class="field">
+      <div class="label">Server URL</div>
+      <input class="input" id="login-url" type="url" placeholder="http://vpm.yourserver.com:3000"/>
+    </div>
+    <div class="field">
+      <div class="label">Username</div>
+      <input class="input" id="login-user" type="text" placeholder="username"/>
+    </div>
+    <div class="field">
+      <div class="label">Password</div>
+      <input class="input" id="login-pass" type="password" placeholder="password"
+             onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <div id="login-error" style="color:var(--error);font-size:12px;display:none"></div>
+    <button class="btn btn-primary" id="login-btn" onclick="doLogin()" style="width:100%;max-width:320px;margin-top:4px">Sign In</button>
+  </div>
+</div>
+
+<!-- UPLOAD PAGE -->
+<div class="page active" id="page-upload">
+
+  <!-- Drop zone -->
+  <div class="drop-zone" id="drop-zone"
+       onclick="pickAndAdd()"
+       ondragover="onDragOver(event)"
+       ondragleave="onDragLeave(event)"
+       ondrop="onDrop(event)">
+    <span class="drop-zone-icon">📂</span>
+    <div class="drop-zone-label">Drop files here or click to browse</div>
+    <div class="drop-zone-sub">Any file type · up to 50 GB per file</div>
+  </div>
+
+  <!-- Folder selector -->
+  <div class="folder-section">
+    <div class="section-label">Destination Folder</div>
+    <input class="folder-search" id="folder-search" placeholder="🔍 Search folders…" oninput="renderFolders()"/>
+    <div class="folder-list" id="folder-list"></div>
+    <div class="prefix-display" id="prefix-display">(root)</div>
+  </div>
+
+  <!-- Staged files -->
+  <div id="staged-section" style="display:none">
+    <div class="queue-header" style="margin-bottom:6px">
+      <div class="section-label">Files to upload</div>
+      <button class="btn-icon" onclick="clearStaged()" title="Clear all">✕</button>
+    </div>
+    <div id="staged-list" class="queue-list"></div>
+    <div style="display:flex;gap:8px;margin-top:10px;justify-content:flex-end">
+      <button class="btn btn-ghost btn-sm" onclick="clearStaged()">Clear</button>
+      <button class="btn btn-dragon" id="upload-btn" onclick="startUpload()">⚡ Upload</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- QUEUE PAGE -->
+<div class="page" id="page-queue">
+  <div class="queue-header">
+    <div class="section-label">Upload Queue</div>
+    <div class="queue-stats">
+      <span><span class="stat-val" id="stat-active">0</span> active</span>
+      <span><span class="stat-val" id="stat-done">0</span> done</span>
+      <span><span class="stat-val" id="stat-error">0</span> errors</span>
+    </div>
+  </div>
+  <div id="queue-list" class="queue-list">
+    <div class="queue-empty">No uploads yet.</div>
+  </div>
+</div>
+
+<!-- SETTINGS PAGE -->
+<div class="page" id="page-settings">
+  <div class="settings-section">
+
+    <div class="settings-group">
+      <div class="settings-title">Connection</div>
+      <div id="conn-status" style="font-size:12px;color:var(--text-mid)">Checking…</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost btn-sm" onclick="doLogout()">Sign Out</button>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <div class="settings-title">Transfer</div>
+      <div class="settings-row">
+        <div>
+          <label>Parallel workers</label>
+          <small>Concurrent chunk uploads — more = faster on high-bandwidth links</small>
+        </div>
+        <input class="input settings-input" id="set-workers" type="number" min="1" max="32" value="6"/>
+      </div>
+      <div class="settings-row">
+        <div>
+          <label>Chunk size (MB)</label>
+          <small>Larger chunks = fewer round trips, better on stable connections</small>
+        </div>
+        <input class="input settings-input" id="set-chunk" type="number" min="5" max="256" value="16"/>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="saveSettings()" style="align-self:flex-end">Save</button>
+    </div>
+
+    <div class="settings-group" style="font-size:11px;color:var(--text-dim);line-height:1.7">
+      <div class="settings-title">About</div>
+      Dragon Wind Desktop v0.1.0<br>
+      High-speed parallel S3 uploader for Grass Valley AMPP.<br>
+      Built on Electron · Wild Dragon
+    </div>
+
+  </div>
+</div>
+
+<!-- Status bar -->
+<div class="statusbar">
+  <div class="statusbar-dot" id="conn-dot"></div>
+  <span id="sb-server" style="color:var(--text-dim)">Not connected</span>
+  <span style="flex:1"></span>
+  <span class="statusbar-speed" id="sb-speed"></span>
+</div>
+
+<!-- Toast -->
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script>
+// ── State ────────────────────────────────────────────────────────────────────
+let folderTree   = [];
+let selectedPrefix = "";
+let stagedFiles  = [];   // Array of file paths (strings)
+let jobs         = new Map();  // jobId → job
+let loggedIn     = false;
+let serverUrl    = "";
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+(async () => {
+  const status = await window.dw.authStatus();
+  if (status.loggedIn) {
+    loggedIn  = true;
+    serverUrl = status.serverUrl;
+    showApp();
+    await loadFolders();
+    await refreshQueue();
+  } else {
+    showLogin();
+  }
+
+  // Listen for events from main process
+  window.dw.onJobProgress(job => { jobs.set(job.id, job); renderQueue(); updateSpeed(); });
+  window.dw.onJobComplete(job => { jobs.set(job.id, job); renderQueue(); toast(`✅ ${job.name}`, "success"); });
+  window.dw.onJobError(job    => { jobs.set(job.id, job); renderQueue(); toast(`❌ ${job.name}: ${job.error}`, "error"); });
+  window.dw.onAddFiles(paths  => { stageFiles(paths); switchPage("upload"); });
+  window.dw.onNavSettings(()  => switchPage("settings"));
+
+  // Refresh queue periodically
+  setInterval(refreshQueue, 3000);
+})();
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const url  = document.getElementById("login-url").value.trim();
+  const user = document.getElementById("login-user").value.trim();
+  const pass = document.getElementById("login-pass").value;
+  const err  = document.getElementById("login-error");
+  const btn  = document.getElementById("login-btn");
+
+  if (!url || !user || !pass) { err.textContent = "All fields required."; err.style.display = "block"; return; }
+  err.style.display = "none";
+  btn.disabled = true; btn.textContent = "Signing in…";
+
+  const result = await window.dw.login({ serverUrl: url, username: user, password: pass });
+  btn.disabled = false; btn.textContent = "Sign In";
+
+  if (result.success) {
+    loggedIn = true; serverUrl = url;
+    showApp();
+    await loadFolders();
+  } else {
+    err.textContent = result.error || "Login failed.";
+    err.style.display = "block";
+  }
+}
+
+async function doLogout() {
+  await window.dw.logout();
+  loggedIn = false; serverUrl = "";
+  jobs.clear(); stagedFiles = [];
+  showLogin();
+}
+
+function showLogin() {
+  document.getElementById("login-page").style.display = "flex";
+  document.getElementById("nav").style.display = "none";
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.getElementById("conn-dot").classList.remove("connected");
+  document.getElementById("sb-server").textContent = "Not connected";
+}
+
+function showApp() {
+  document.getElementById("login-page").style.display = "none";
+  document.getElementById("nav").style.display = "flex";
+  switchPage("upload");
+  document.getElementById("conn-dot").classList.add("connected");
+  document.getElementById("sb-server").textContent = serverUrl.replace(/^https?:\/\//, "");
+  document.getElementById("conn-status").textContent = `Connected as ${serverUrl.replace(/^https?:\/\//, "")}`;
+  loadSettings();
+}
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+function switchPage(name) {
+  document.querySelectorAll(".nav-tab").forEach(t => t.classList.toggle("active", t.dataset.page === name));
+  document.querySelectorAll(".page").forEach(p => p.classList.toggle("active", p.id === `page-${name}`));
+}
+
+// ── Folders ───────────────────────────────────────────────────────────────────
+async function loadFolders() {
+  const r = await window.dw.getFolders();
+  folderTree = r.tree || [];
+  renderFolders();
+}
+
+function renderFolders() {
+  const q   = (document.getElementById("folder-search")?.value || "").trim().toLowerCase();
+  const box = document.getElementById("folder-list");
+  box.innerHTML = "";
+
+  function flatMatch(nodes, pathArr) {
+    let out = [];
+    nodes.forEach(n => {
+      const fullPath = [...pathArr, n.name];
+      const key = fullPath.join("/");
+      if (!q || key.toLowerCase().includes(q)) out.push({ key, icon: n.children?.length ? "📁" : "📄" });
+      if (n.children?.length) out = out.concat(flatMatch(n.children, fullPath));
+    });
+    return out;
+  }
+
+  const rows = q ? flatMatch(folderTree, []) : buildTree(folderTree, []);
+
+  if (!q) {
+    // Root row
+    const root = document.createElement("div");
+    root.className = "folder-row" + (selectedPrefix === "" ? " active" : "");
+    root.innerHTML = `<span class="fi">🏠</span> Root`;
+    root.onclick = () => { selectedPrefix = ""; updatePrefix(); renderFolders(); };
+    box.appendChild(root);
+  }
+
+  rows.forEach(({ key, icon, indent = 0 }) => {
+    const row = document.createElement("div");
+    row.className = "folder-row" + (selectedPrefix === key ? " active" : "");
+    row.style.paddingLeft = (9 + indent * 14) + "px";
+    row.innerHTML = `<span class="fi">${icon}</span> ${esc(q ? key : key.split("/").pop())}`;
+    row.onclick = () => { selectedPrefix = key; updatePrefix(); renderFolders(); };
+    box.appendChild(row);
+  });
+}
+
+function buildTree(nodes, pathArr) {
+  let out = [];
+  nodes.forEach(n => {
+    const fullPath = [...pathArr, n.name];
+    const key = fullPath.join("/");
+    out.push({ key, icon: n.children?.length ? "📁" : "📄", indent: pathArr.length });
+    if (n.children?.length) out = out.concat(buildTree(n.children, fullPath));
+  });
+  return out;
+}
+
+function updatePrefix() {
+  document.getElementById("prefix-display").textContent = selectedPrefix || "(root)";
+}
+
+// ── File Staging ──────────────────────────────────────────────────────────────
+async function pickAndAdd() {
+  const paths = await window.dw.pickFiles();
+  if (paths.length) stageFiles(paths);
+}
+
+function stageFiles(paths) {
+  paths.forEach(p => { if (!stagedFiles.includes(p)) stagedFiles.push(p); });
+  renderStaged();
+  document.getElementById("staged-section").style.display = stagedFiles.length ? "block" : "none";
+}
+
+function clearStaged() {
+  stagedFiles = [];
+  document.getElementById("staged-section").style.display = "none";
+}
+
+function renderStaged() {
+  const list = document.getElementById("staged-list");
+  list.innerHTML = "";
+  stagedFiles.forEach((f, i) => {
+    const name = f.split(/[\\/]/).pop();
+    const row = document.createElement("div");
+    row.className = "job-card";
+    row.style.flexDirection = "row";
+    row.style.alignItems = "center";
+    row.innerHTML = `
+      <span style="font-size:11px;font-family:var(--font-mono);color:var(--text-mid);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(name)}</span>
+      <button class="btn-icon" onclick="removeStagedFile(${i})">✕</button>`;
+    list.appendChild(row);
+  });
+}
+
+function removeStagedFile(i) {
+  stagedFiles.splice(i, 1);
+  if (!stagedFiles.length) clearStaged();
+  else renderStaged();
+}
+
+// ── Upload ────────────────────────────────────────────────────────────────────
+async function startUpload() {
+  if (!stagedFiles.length) return;
+  const btn = document.getElementById("upload-btn");
+  btn.disabled = true; btn.textContent = "Queuing…";
+
+  const result = await window.dw.addFiles({
+    files: stagedFiles,
+    prefix: selectedPrefix,
+  });
+
+  btn.disabled = false; btn.textContent = "⚡ Upload";
+
+  if (result.success) {
+    result.jobs.forEach(j => jobs.set(j.id, j));
+    clearStaged();
+    switchPage("queue");
+    renderQueue();
+    toast(`${result.jobs.length} file${result.jobs.length > 1 ? "s" : ""} queued`, "success");
+  } else {
+    toast(result.error || "Failed to queue", "error");
+  }
+}
+
+// ── Queue ─────────────────────────────────────────────────────────────────────
+async function refreshQueue() {
+  if (!loggedIn) return;
+  const q = await window.dw.getQueue();
+  q.forEach(j => jobs.set(j.id, j));
+  renderQueue();
+}
+
+function renderQueue() {
+  const list = document.getElementById("queue-list");
+  const arr  = Array.from(jobs.values()).reverse();
+
+  // Nav badge
+  const active = arr.filter(j => j.status === "uploading" || j.status === "queued").length;
+  const badge  = document.getElementById("nav-queue-count");
+  badge.style.display = active ? "inline" : "none";
+  badge.textContent   = active;
+
+  // Stats
+  document.getElementById("stat-active").textContent = arr.filter(j => j.status === "uploading").length;
+  document.getElementById("stat-done").textContent   = arr.filter(j => j.status === "done").length;
+  document.getElementById("stat-error").textContent  = arr.filter(j => j.status === "error").length;
+
+  if (!arr.length) {
+    list.innerHTML = '<div class="queue-empty">No uploads yet.</div>';
+    return;
+  }
+
+  list.innerHTML = "";
+  arr.forEach(j => {
+    const card = document.createElement("div");
+    card.className = `job-card ${j.status}`;
+
+    const badgeClass = {
+      queued: "badge-queued", uploading: "badge-uploading",
+      done: "badge-done", error: "badge-error", cancelled: "badge-cancelled",
+    }[j.status] || "badge-queued";
+
+    const badgeLabel = {
+      queued: "QUEUED", uploading: "UPLOADING", done: "DONE",
+      error: "ERROR", cancelled: "CANCELLED",
+    }[j.status] || j.status.toUpperCase();
+
+    const speedStr = j.speedBps > 0 ? fmtSpeed(j.speedBps) : "";
+    const etaStr   = j.eta > 0 ? fmtEta(j.eta) : "";
+    const sizeStr  = fmtSize(j.size);
+
+    let actions = "";
+    if (j.status === "error")     actions = `<button class="btn-icon" onclick="retryJob('${j.id}')" title="Retry">↺</button>`;
+    if (j.status === "uploading" || j.status === "queued")
+      actions = `<button class="btn-icon" onclick="cancelJob('${j.id}')" title="Cancel">✕</button>`;
+
+    card.innerHTML = `
+      <div class="job-top">
+        <div class="job-name">${esc(j.name)}</div>
+        <span class="job-status-badge ${badgeClass}">${badgeLabel}</span>
+        ${actions}
+      </div>
+      ${j.status === "uploading" || j.status === "done" ? `
+        <div class="progress-bar-wrap">
+          <div class="progress-bar ${j.status === "done" ? "done" : ""}" style="width:${j.percent}%"></div>
+        </div>
+      ` : ""}
+      ${j.status === "error" ? `<div class="job-error-msg">${esc(j.error)}</div>` : ""}
+      <div class="job-meta">
+        <span>${sizeStr}</span>
+        ${j.prefix ? `<span>${esc(j.prefix)}</span>` : ""}
+        ${speedStr ? `<span class="job-speed">${speedStr}</span>` : ""}
+        ${etaStr   ? `<span class="job-eta">ETA ${etaStr}</span>` : ""}
+        ${j.status === "uploading" ? `<span>${j.percent}%</span>` : ""}
+      </div>`;
+
+    list.appendChild(card);
+  });
+}
+
+async function cancelJob(id) {
+  await window.dw.cancel(id);
+  const j = jobs.get(id);
+  if (j) { j.status = "cancelled"; renderQueue(); }
+}
+
+async function retryJob(id) {
+  await window.dw.retry(id);
+  const j = jobs.get(id);
+  if (j) { j.status = "queued"; j.uploadedBytes = 0; j.percent = 0; renderQueue(); }
+}
+
+// ── Settings ──────────────────────────────────────────────────────────────────
+async function loadSettings() {
+  const s = await window.dw.getSettings();
+  document.getElementById("set-workers").value = s.workers || 6;
+  document.getElementById("set-chunk").value   = s.chunkMb || 16;
+}
+
+async function saveSettings() {
+  const workers = parseInt(document.getElementById("set-workers").value);
+  const chunkMb = parseInt(document.getElementById("set-chunk").value);
+  await window.dw.setSettings({ workers, chunkMb });
+  toast("Settings saved", "success");
+}
+
+// ── Drag and Drop ─────────────────────────────────────────────────────────────
+function onDragOver(e) {
+  e.preventDefault();
+  document.getElementById("drop-zone").classList.add("drag-over");
+}
+function onDragLeave(e) {
+  document.getElementById("drop-zone").classList.remove("drag-over");
+}
+function onDrop(e) {
+  e.preventDefault();
+  document.getElementById("drop-zone").classList.remove("drag-over");
+  const paths = Array.from(e.dataTransfer.files).map(f => f.path);
+  if (paths.length) stageFiles(paths);
+}
+
+// ── Speed display ─────────────────────────────────────────────────────────────
+function updateSpeed() {
+  const uploading = Array.from(jobs.values()).filter(j => j.status === "uploading");
+  const totalBps  = uploading.reduce((s, j) => s + (j.speedBps || 0), 0);
+  document.getElementById("sb-speed").textContent = totalBps > 1024 ? fmtSpeed(totalBps) : "";
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function fmtSize(b) {
+  if (!b) return "0 B";
+  if (b < 1024) return b + " B";
+  if (b < 1024*1024) return (b/1024).toFixed(0) + " KB";
+  if (b < 1024*1024*1024) return (b/1024/1024).toFixed(1) + " MB";
+  return (b/1024/1024/1024).toFixed(2) + " GB";
+}
+
+function fmtSpeed(bps) {
+  if (bps < 1024) return bps.toFixed(0) + " B/s";
+  if (bps < 1024*1024) return (bps/1024).toFixed(0) + " KB/s";
+  return (bps/1024/1024).toFixed(1) + " MB/s";
+}
+
+function fmtEta(s) {
+  if (s < 60) return s + "s";
+  if (s < 3600) return Math.floor(s/60) + "m " + (s%60) + "s";
+  return Math.floor(s/3600) + "h " + Math.floor((s%3600)/60) + "m";
+}
+
+function toast(msg, type = "info") {
+  const wrap = document.getElementById("toast-wrap");
+  const el   = document.createElement("div");
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  wrap.appendChild(el);
+  requestAnimationFrame(() => el.classList.add("show"));
+  setTimeout(() => {
+    el.classList.remove("show");
+    setTimeout(() => el.remove(), 250);
+  }, 3000);
+}
+</script>
+</body>
+</html>
