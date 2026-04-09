@@ -232,7 +232,7 @@ class TransferEngine {
 
     const t0 = Date.now();
 
-    await this._putRequest(url, buf);
+    const etag = await this._putRequest(url, buf);  // real ETag from S3
 
     const elapsed = (Date.now() - t0) / 1000;
     const bps     = length / Math.max(elapsed, 0.001);
@@ -249,7 +249,7 @@ class TransferEngine {
     job.eta = job.speedBps > 0 ? Math.round(remaining / job.speedBps) : null;
 
     this.onProgress(this._publicJob(job));
-    return `"part-${partNumber}-etag-placeholder"`;  // real ETag comes from S3 response headers
+    return etag;
   }
 
   _putRequest(url, body) {
@@ -281,29 +281,6 @@ class TransferEngine {
       req.write(body);
       req.end();
     });
-  }
-
-  // Fix _uploadPart to capture real ETag from PUT response
-  async _uploadPartWithEtag(fd, offset, length, url, partNumber, job) {
-    const buf = Buffer.allocUnsafe(length);
-    fs.readSync(fd, buf, 0, length, offset);
-
-    const t0 = Date.now();
-    const etag = await this._putRequest(url, buf);
-    const elapsed = (Date.now() - t0) / 1000;
-    const bps     = length / Math.max(elapsed, 0.001);
-
-    job._speedSamples.push(bps);
-    if (job._speedSamples.length > 5) job._speedSamples.shift();
-    job.speedBps = job._speedSamples.reduce((a, b) => a + b, 0) / job._speedSamples.length;
-
-    job.uploadedBytes += length;
-    job.percent = Math.round((job.uploadedBytes / job.size) * 100);
-    const remaining = job.size - job.uploadedBytes;
-    job.eta = job.speedBps > 0 ? Math.round(remaining / job.speedBps) : null;
-
-    this.onProgress(this._publicJob(job));
-    return etag;
   }
 
   _publicJob(job) {
