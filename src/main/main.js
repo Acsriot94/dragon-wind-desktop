@@ -81,7 +81,14 @@ function updateTrayMenu(stats = null) {
 
 // ── Main Window ───────────────────────────────────────────────────────────────
 function createWindow() {
+  const winIcon = process.platform === "win32"
+    ? path.join(__dirname, "../../assets/icon.ico")
+    : process.platform === "darwin"
+    ? path.join(__dirname, "../../assets/icon.icns")
+    : path.join(__dirname, "../../assets/icon.png");
+
   mainWindow = new BrowserWindow({
+    icon: winIcon,
     width: 480,
     height: 680,
     minWidth: 400,
